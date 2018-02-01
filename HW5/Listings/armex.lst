@@ -1,0 +1,398 @@
+
+
+
+ARM Macro Assembler    Page 1 
+
+
+    1 00000000         ;Homework 5
+    2 00000000         ;Drew Engberson
+    3 00000000         ;This program takes a 32-bit 2's complement number
+    4 00000000         ;and converts it into a signed decimal string.
+    5 00000000         
+    6 00000000         
+    7 00000000                 AREA             Homework5, CODE
+    8 00000000                 EXPORT           main
+    9 00000000                 ENTRY
+   10 00000000         
+   11 00000000         main
+   12 00000000 4A27            LDR              R2, =HexStr ;Declaration of nul
+                                                            l-terminated string
+                                                            
+   13 00000002 F04F 0400       MOV              R4, #0x0
+   14 00000006         
+   15 00000006         ReadTwos
+   16 00000006 F812 3B01       LDRB             R3, [R2], #1 ;Loads first byte 
+                                                            from HexStr into te
+                                                            mp. register R3 and
+                                                             increments
+   17 0000000A 2B30            CMP              R3, #'0'
+   18 0000000C D310            BLO              DoneRead
+   19 0000000E 2B39            CMP              R3, #'9'
+   20 00000010 D908            BLS              IsADigit
+   21 00000012 2B41            CMP              R3, #'A'
+   22 00000014 D30C            BLO              DoneRead
+   23 00000016 2B46            CMP              R3, #'F'
+   24 00000018 D80A            BHI              DoneRead
+   25 0000001A F1A3 0341       SUB              R3, #'A'
+   26 0000001E F103 030A       ADD              R3, #0xA
+   27 00000022 E001            B                ValidHexSym
+   28 00000024         
+   29 00000024         
+   30 00000024         IsADigit
+   31 00000024 F1A3 0330       SUB              R3, #'0'
+   32 00000028         
+   33 00000028         ;Makes a 4-bit space so the next piece of HexStr 
+   34 00000028         ;can be stored in R4
+   35 00000028         ValidHexSym
+   36 00000028 EA4F 1404       LSL              R4, R4, #4
+   37 0000002C 441C            ADD              R4, R3
+   38 0000002E E7EA            B                ReadTwos
+   39 00000030         
+   40 00000030         ;Reads the twos complement number and checks to see if t
+                       he
+   41 00000030         ;first bit is a 1. If so, a negative sign is added to th
+                       e beginning
+   42 00000030         ;of the number. Otherwise, branch to IsPos
+   43 00000030         DoneRead
+   44 00000030 4B1C            LDR              R3,= TwosComp
+   45 00000032 601C            STR              R4, [R3]
+   46 00000034 4D1C            LDR              R5,= RvsDecStr
+   47 00000036 4E1D            LDR              R6,= DecStr
+   48 00000038 F014 4F00       TST              R4, #0x80000000
+   49 0000003C D007            BEQ              IsPos
+   50 0000003E F04F 032D       MOV              R3, "-"
+   51 00000042 F806 3B01       STRB             R3, [R6], #1
+   52 00000046 EA6F 0404       MVN              R4, R4
+
+
+
+ARM Macro Assembler    Page 2 
+
+
+   53 0000004A F104 0401       ADD              R4, #1
+   54 0000004E         
+   55 0000004E         ;Do-while loop which executes until
+   56 0000004E         ;our number is fully converted into decimal.
+   57 0000004E         IsPos
+   58 0000004E F000 F81B       BL               DivByTen
+   59 00000052 F107 0700       ADD              R7, #0
+   60 00000056 702F            STRB             R7, [R5]
+   61 00000058 F105 0501       ADD              R5, #1
+   62 0000005C 2C00            CMP              R4, #0x0
+   63 0000005E D1F6            BNE              IsPos
+   64 00000060         
+   65 00000060         ;Do-while loop that reads reversed decimal number from R
+                       8 into R5
+   66 00000060         ;and branches to DoneDecStr once it is completely read.
+   67 00000060         DoneRvsDecStr
+   68 00000060 F1A5 0501       SUB              R5, #1
+   69 00000064 F8DF 8040       LDR              R8,=RvsDecStr
+   70 00000068 4545            CMP              R5, R8
+   71 0000006A D306            BLO              DoneDecStr
+   72 0000006C 782B            LDRB             R3, [R5]
+   73 0000006E F1A5 0501       SUB              R5, #1
+   74 00000072 7033            STRB             R3, [R6]
+   75 00000074 F106 0601       ADD              R6, #1
+   76 00000078 E7F2            B                DoneRvsDecStr
+   77 0000007A         
+   78 0000007A         
+   79 0000007A         DoneDecStr
+   80 0000007A F04F 0300       MOV              R3, #0x0
+   81 0000007E 7033            STRB             R3, [R6]
+   82 00000080         
+   83 00000080 F04F 0018       MOV              R0, #0x18   ; angel_SWIreason_R
+                                                            eportException
+   84 00000084 490B            LDR              R1, =0x20026 ; ADP_Stopped_Appl
+                                                            icationExit
+   85 00000086 DF11            SVC              #0x11       ; previously SWI
+   86 00000088         ;BKPT #0xAB for semihosting isn't supported in Keil's uV
+                       
+   87 00000088         
+   88 00000088         ;END main routine
+   89 00000088         
+   90 00000088         ;Subroutine part A to convert our binary
+   91 00000088         ;number into decimal.
+   92 00000088         DivByTen
+   93 00000088 F04F 0300       MOV              R3, #0x0
+   94 0000008C 2C0A            CMP              R4, #0xA
+   95 0000008E D304            BLO              DoneSubByTen
+   96 00000090 F1A4 040A       SUB              R4, #0xA
+   97 00000094 F103 0301       ADD              R3, #1
+   98 00000098 E7F6            B                DivByTen
+   99 0000009A         
+  100 0000009A         ;Subroutine part B to convert our binary
+  101 0000009A         ;number into decimal.
+  102 0000009A         DoneSubByTen
+  103 0000009A 4627            MOV              R7, R4      ;Remainder in R4 mo
+                                                            ves to R7
+  104 0000009C 461C            MOV              R4, R3      ;Quotient in R3 mov
+                                                            es to R4
+  105 0000009E 4770            BX               LR
+
+
+
+ARM Macro Assembler    Page 3 
+
+
+  106 000000A0         
+  107 000000A0                 ALIGN
+  108 000000A0         
+  109 000000A0 00000000 
+              00000000 
+              00000000 
+              00000000 
+              00000000 
+              00020026         AREA             HomeworkNumber5, DATA, READWRIT
+E
+  110 00000000         
+  111 00000000                 EXPORT           adrHexStr   ;needed for display
+                                                            ing addr in command
+                                                            -window
+  112 00000000                 EXPORT           adrTwosComp
+  113 00000000                 EXPORT           adrDecStr
+  114 00000000                 EXPORT           adrRvsDecStr
+  115 00000000         
+  116 00000000 00000000 
+                       adrHexStr
+                               DCD              HexStr      ;needed for display
+                                                            ing addr in command
+                                                            -window
+  117 00000004 00000000 
+                       adrTwosComp
+                               DCD              TwosComp
+  118 00000008 00000000 
+                       adrDecStr
+                               DCD              DecStr
+  119 0000000C 00000000 
+                       adrRvsDecStr
+                               DCD              RvsDecStr
+  120 00000010         
+  121 00000010 31 32 33 
+              34 31 32 
+              33 34    HexStr  DCB              "12341234"  ;Input
+  122 00000018                 ALIGN
+  123 00000018 00000000 
+                       TwosComp
+                               DCD              0           ;Output
+  124 0000001C                 ALIGN
+  125 0000001C 00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00    DecStr  SPACE            11          ;Output
+  126 00000027 00              ALIGN
+  127 00000028 00 00 00 
+              00 00 00 
+              00 00 00 
+              00 00 00 RvsDecStr
+                               SPACE            12          ;Output
+  128 00000034                 ALIGN
+  129 00000034         
+  130 00000034                 END
+Command Line: --debug --xref --diag_suppress=9931 --cpu=Cortex-M3 --apcs=interw
+ork --depend=.\objects\armex.d -o.\objects\armex.o -I.\RTE\_Target_1 -IC:\Keil_
+v5\ARM\PACK\ARM\CMSIS\5.0.1\CMSIS\Include -IC:\Keil_v5\ARM\PACK\ARM\CMSIS\5.0.1
+\Device\ARM\ARMCM3\Include --predefine="__EVAL SETA 1" --predefine="__UVISION_V
+ERSION SETA 524" --predefine="_RTE_ SETA 1" --predefine="ARMCM3 SETA 1" --list=
+
+
+
+ARM Macro Assembler    Page 4 
+
+
+.\listings\armex.lst ARMex.s
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+Relocatable symbols
+
+DivByTen 00000088
+
+Symbol: DivByTen
+   Definitions
+      At line 92 in file ARMex.s
+   Uses
+      At line 58 in file ARMex.s
+      At line 98 in file ARMex.s
+
+DoneDecStr 0000007A
+
+Symbol: DoneDecStr
+   Definitions
+      At line 79 in file ARMex.s
+   Uses
+      At line 71 in file ARMex.s
+Comment: DoneDecStr used once
+DoneRead 00000030
+
+Symbol: DoneRead
+   Definitions
+      At line 43 in file ARMex.s
+   Uses
+      At line 18 in file ARMex.s
+      At line 22 in file ARMex.s
+      At line 24 in file ARMex.s
+
+DoneRvsDecStr 00000060
+
+Symbol: DoneRvsDecStr
+   Definitions
+      At line 67 in file ARMex.s
+   Uses
+      At line 76 in file ARMex.s
+Comment: DoneRvsDecStr used once
+DoneSubByTen 0000009A
+
+Symbol: DoneSubByTen
+   Definitions
+      At line 102 in file ARMex.s
+   Uses
+      At line 95 in file ARMex.s
+Comment: DoneSubByTen used once
+Homework5 00000000
+
+Symbol: Homework5
+   Definitions
+      At line 7 in file ARMex.s
+   Uses
+      None
+Comment: Homework5 unused
+IsADigit 00000024
+
+Symbol: IsADigit
+   Definitions
+      At line 30 in file ARMex.s
+   Uses
+      At line 20 in file ARMex.s
+Comment: IsADigit used once
+
+
+
+ARM Macro Assembler    Page 2 Alphabetic symbol ordering
+Relocatable symbols
+
+IsPos 0000004E
+
+Symbol: IsPos
+   Definitions
+      At line 57 in file ARMex.s
+   Uses
+      At line 49 in file ARMex.s
+      At line 63 in file ARMex.s
+
+ReadTwos 00000006
+
+Symbol: ReadTwos
+   Definitions
+      At line 15 in file ARMex.s
+   Uses
+      At line 38 in file ARMex.s
+Comment: ReadTwos used once
+ValidHexSym 00000028
+
+Symbol: ValidHexSym
+   Definitions
+      At line 35 in file ARMex.s
+   Uses
+      At line 27 in file ARMex.s
+Comment: ValidHexSym used once
+main 00000000
+
+Symbol: main
+   Definitions
+      At line 11 in file ARMex.s
+   Uses
+      At line 8 in file ARMex.s
+Comment: main used once
+11 symbols
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+Relocatable symbols
+
+DecStr 0000001C
+
+Symbol: DecStr
+   Definitions
+      At line 125 in file ARMex.s
+   Uses
+      At line 47 in file ARMex.s
+      At line 118 in file ARMex.s
+
+HexStr 00000010
+
+Symbol: HexStr
+   Definitions
+      At line 121 in file ARMex.s
+   Uses
+      At line 12 in file ARMex.s
+      At line 116 in file ARMex.s
+
+HomeworkNumber5 00000000
+
+Symbol: HomeworkNumber5
+   Definitions
+      At line 109 in file ARMex.s
+   Uses
+      None
+Comment: HomeworkNumber5 unused
+RvsDecStr 00000028
+
+Symbol: RvsDecStr
+   Definitions
+      At line 127 in file ARMex.s
+   Uses
+      At line 46 in file ARMex.s
+      At line 69 in file ARMex.s
+      At line 119 in file ARMex.s
+
+TwosComp 00000018
+
+Symbol: TwosComp
+   Definitions
+      At line 123 in file ARMex.s
+   Uses
+      At line 44 in file ARMex.s
+      At line 117 in file ARMex.s
+
+adrDecStr 00000008
+
+Symbol: adrDecStr
+   Definitions
+      At line 118 in file ARMex.s
+   Uses
+      At line 113 in file ARMex.s
+Comment: adrDecStr used once
+adrHexStr 00000000
+
+Symbol: adrHexStr
+   Definitions
+      At line 116 in file ARMex.s
+   Uses
+
+
+
+ARM Macro Assembler    Page 2 Alphabetic symbol ordering
+Relocatable symbols
+
+      At line 111 in file ARMex.s
+Comment: adrHexStr used once
+adrRvsDecStr 0000000C
+
+Symbol: adrRvsDecStr
+   Definitions
+      At line 119 in file ARMex.s
+   Uses
+      At line 114 in file ARMex.s
+Comment: adrRvsDecStr used once
+adrTwosComp 00000004
+
+Symbol: adrTwosComp
+   Definitions
+      At line 117 in file ARMex.s
+   Uses
+      At line 112 in file ARMex.s
+Comment: adrTwosComp used once
+9 symbols
+356 symbols in table
